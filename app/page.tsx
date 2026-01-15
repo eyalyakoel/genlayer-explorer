@@ -4,7 +4,6 @@ import LatestTransactions from "./components/LatestTransactions";
 import NetworkStatsMerged from "./components/NetworkStatsMerged";
 import { headers } from "next/headers";
 
-
 type LatestResp = {
   latest: string;
   stats: {
@@ -93,12 +92,16 @@ const Icons = {
 };
 
 export default async function Home() {
-const h = await headers();
-const host = h.get("host") ?? "localhost:3000";
-const proto = h.get("x-forwarded-proto") ?? "http";
-const base = `${proto}://${host}`;
+  const vercelUrl = process.env.VERCEL_URL;
 
-const res = await fetch(`${base}/api/blocks/latest`, { cache: "no-store" });
+  const h = await headers();
+  const host = h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? "http";
+
+  const base = vercelUrl ? `https://${vercelUrl}` : `${proto}://${host}`;
+
+  const res = await fetch(`${base}/api/blocks/latest`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`GET /api/blocks/latest failed: ${res.status}`);
 
   const data: LatestResp = await res.json();
 
@@ -137,9 +140,7 @@ const res = await fetch(`${base}/api/blocks/latest`, { cache: "no-store" });
                 <h1 className="text-3xl font-semibold tracking-tight">
                   GenLayer Testnet Explorer
                 </h1>
-                <p className="text-slate-400 text-base">
-                  Latest blocks & transactions
-                </p>
+                <p className="text-slate-400 text-base">Latest blocks & transactions</p>
               </div>
 
               <div className="max-w-4xl">
