@@ -92,13 +92,10 @@ const Icons = {
 };
 
 export default async function Home() {
-  const vercelUrl = process.env.VERCEL_URL;
-
-  const h = await headers();
-  const host = h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? "http";
-
-  const base = vercelUrl ? `https://${vercelUrl}` : `${proto}://${host}`;
+const h = await headers();
+const host = h.get("host") ?? "localhost:3000";
+const proto = h.get("x-forwarded-proto") ?? "https"; // שים לב: default https בפרוד
+const base = `${proto}://${host}`;
 
   const res = await fetch(`${base}/api/blocks/latest`, { cache: "no-store" });
   if (!res.ok) throw new Error(`GET /api/blocks/latest failed: ${res.status}`);
