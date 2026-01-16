@@ -1,5 +1,5 @@
-import { headers } from "next/headers";
 import CopyButton from "../../components/CopyButton";
+import { publicClient } from "@/lib/genlayer";
 
 type BlockResp = {
   number: string;
@@ -9,28 +9,38 @@ type BlockResp = {
   txs: `0x${string}`[];
 };
 
+function toTxHash(t: any): `0x${string}` | null {
+  if (typeof t === "string" && t.startsWith("0x")) return t as `0x${string}`;
+  if (t && typeof t === "object" && typeof t.hash === "string" && t.hash.startsWith("0x")) {
+    return t.hash as `0x${string}`;
+  }
+  return null;
+}
+
 export default async function BlockPage({
   params,
 }: {
-  params: Promise<{ number: string }>;
+  params: { number: string } | Promise<{ number: string }>;
 }) {
-  const { number } = await params;
+  const p = await Promise.resolve(params);
+  const raw = p?.number;
 
-  // build absolute base URL (works in dev + prod)
-  const h = await headers();
-  const host = h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const base = `${proto}://${host}`;
-
-  const res = await fetch(`${base}/api/block/${number}`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to load block");
+  // Strict validate: only digits
+  if (typeof raw !== "string" || !/^\d+$/.test(raw)) {
+    throw new Error("Invalid block number");
   }
 
-  const block: BlockResp = await res.json();
+  const n = BigInt(raw);
+
+  const b = await publicClient.getBlock({ blockNumber: n });
+
+  const block: BlockResp = {
+    number: b.number?.toString() ?? raw,
+    hash: b.hash,
+    parentHash: b.parentHash,
+    timestamp: Number(b.timestamp),
+    txs: (b.transactions ?? []).map(toTxHash).filter(Boolean) as `0x${string}`[],
+  };
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-6">
@@ -62,7 +72,7 @@ export default async function BlockPage({
               label="Parent block"
               value={
                 <a
-                  href={`/block/${parseInt(block.number) - 1}`}
+                  href={`/block/${n > 0n ? (n - 1n).toString() : "0"}`}
                   className="text-sky-300 hover:underline font-mono"
                 >
                   {block.parentHash.slice(0, 14)}…{block.parentHash.slice(-10)}
