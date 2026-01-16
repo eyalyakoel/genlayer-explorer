@@ -2,29 +2,8 @@ import SearchBar from "./components/SearchBar";
 import AutoRefreshToggle from "./components/AutoRefreshToggle";
 import LatestTransactions from "./components/LatestTransactions";
 import NetworkStatsMerged from "./components/NetworkStatsMerged";
+import { getLatest, type LatestResp } from "@/lib/getLatest";
 import { headers } from "next/headers";
-
-type LatestResp = {
-  latest: string;
-  stats: {
-    blocksCount: number;
-    timeWindowSec: number;
-    txsTotal: number;
-    avgBlockTimeSec: number;
-    tps: number;
-  };
-  blocks: {
-    number: string;
-    hash: string;
-    timestamp: number;
-    txCount: number;
-  }[];
-  latestTxs: {
-    hash: `0x${string}`;
-    blockNumber: string;
-    timestamp: number;
-  }[];
-};
 
 function NavItem({
   href,
@@ -92,15 +71,7 @@ const Icons = {
 };
 
 export default async function Home() {
-const h = await headers();
-const host = h.get("host") ?? "localhost:3000";
-const proto = h.get("x-forwarded-proto") ?? "https"; // שים לב: default https בפרוד
-const base = `${proto}://${host}`;
-
-  const res = await fetch(`${base}/api/blocks/latest`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`GET /api/blocks/latest failed: ${res.status}`);
-
-  const data: LatestResp = await res.json();
+const data: LatestResp = await getLatest();
 
   const stats = data.stats ?? {
     blocksCount: 0,
